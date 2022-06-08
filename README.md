@@ -9,5 +9,3 @@ Ganache
 Truffle (global installation)
 Metamask.io (added extension onto broswer)
 To run the development server on a local host scripts: npm run start
-
-For truffle tests and console please consult the official Truffle documentaion for updates.
