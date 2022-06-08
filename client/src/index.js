@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
+
 import { BrowserRouter ,Routes,Route} from "react-router-dom";
 import * as serviceWorker from './serviceWorker';
 // import reportWebVitals from "./reportWebVitals";
@@ -11,17 +12,11 @@ require("dotenv").config();
 const serverUrl = process.env.REACT_APP_SERVER_URL;
 const apiId = process.env.REACT_APP_API_ID;
 
-
 ReactDOM.render(
-  <BrowserRouter>
+ 
     <MoralisProvider serverUrl={serverUrl} appId={apiId}>
-      <Routes>
-        <Route  path="*" element={<App />} />
-      </Routes>
-
-      
-    </MoralisProvider>
-  </BrowserRouter>,
+     <App />
+    </MoralisProvider>,
   document.getElementById("root")
 );
 

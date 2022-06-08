@@ -44,8 +44,9 @@ contract DapDogoNFT is ERC721 ,Ownable
 
 
   function mint(uint256 _quantity) public payable {
+  
     require(isPublicMintEnabled,"minting not enabled");
-    require(msg.value == _quantity* mintPrice,"wrong mint value");
+    require(msg.value == _quantity* mintPrice && msg.value!=0,"wrong mint value");
     require(totalSupply + _quantity <= maxSupply,"sold Out");
     require(walletMint[msg.sender] + _quantity <= maxPerWallet,"exceed max wallet");
 

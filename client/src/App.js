@@ -1,39 +1,60 @@
-import React, { useEffect,useState ,useReducer} from "react";
+import React, {
+  useEffect,
+  useState,
+  createContext,
+} from "react";
 import { BrowserRouter, Route, Routes, Outlet } from "react-router-dom";
 import DapDogoContract from "./contracts/DapDogoNFT.json";
 import Header from "./Component/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { Button, ButtonGroup } from "react-bootstrap/";
 import getWeb3 from "./getWeb3";
 import "./App.css";
 import { useMoralis, useMoralisWeb3Api } from "react-moralis";
+import  MyCollection from "./Component/MyCollection";
+import DapDogo from "./Component/DapDogo.js"
 
 require("dotenv").config();
 
+export const GlobalState = createContext();
+
+
 function App() {
-  const Web3Api = useMoralisWeb3Api();
 
-  const {
-    authenticate,
-    isAuthenticated,
-    isAuthenticating,
-    user,
-    account,
-    logout,
-    
-  } = useMoralis();
+const [web3, setWeb3] = useState(undefined);
+const [accounts, setAccounts] = useState(undefined);
+const [instance, setInstance] = useState(undefined);
+const Web3Api = useMoralisWeb3Api();
 
+const {
+  authenticate,
+  isAuthenticated,
+  isInitialized,
+  isAuthenticating,
+  isWeb3EnableLoading,
+  isWeb3Enabled,
+  user,
+  logout,
+} = useMoralis();
+
+  
   useEffect(() => {
-    if (isAuthenticated) {
-      // add your logic here
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+    const init = async () => {
+      try {
+        const web3 = await getWeb3();
+        const accounts = await web3.eth.getAccounts();
+        setWeb3(web3);
+        setAccounts(accounts);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    init();
+  }, []);
 
   const login = async () => {
     if (!isAuthenticated) {
       await authenticate({ signingMessage: "Log in to NFT Auction" })
-        .then(function (user) {
+        .then(async function (user) {
           console.log("logged in user:", user);
           console.log(user.get("ethAddress"));
         })
@@ -47,181 +68,87 @@ function App() {
     await logout().then((obj) => console.log(obj));
   };
 
-  const fetchNFTTransfers = async () => {
+  const fetchNFTs = async () => {
     // get mainnet NFT transfers for the current user
-    const transfersNFT = await Web3Api.account.getNFTTransfers({
-      address: "0xB6Cc6Cc5e2bA9e8B0Bd72F22E61D05697dd8093A",
-    });
-    console.log(transfersNFT);
-    const bscBalance = await Web3Api.account.getNativeBalance();
-    console.log(bscBalance);
+    const testData = [
+      {
+        token_address: "0x057Ec652A4F150f7FF94f089A38008f49a0DF88e",
+        token_id: "15",
+        contract_type: "ERC721",
+        owner_of: "0x057Ec652A4F150f7FF94f089A38008f49a0DF88e",
+        block_number: "88256",
+        block_number_minted: "88256",
+        token_uri:
+          "https://gateway.pinata.cloud/ipfs/QmWWXWxH5uPF458MyKPqLtmPXfe4VdcMNUA8odn4J8HY1W/2.png",
+        metadata: "string",
+        synced_at: "string",
+        amount: "1",
+        name: "cpto Dogger",
+        symbol: "RARI",
+      },
+    ];
+    //  const bscBalance = await web3.account.getNativeBalance();
+    // console.log(bscBalance);
+    
+    // const NFTsOwned = await Web3Api.account.getNFTs({
+    //   chain: "ropsten",
+    // });
+    // console.log(NFTsOwned);
+    return testData
+   
   };
 
-  return (
-    <>
-      <Header />
-        <Outlet />
-      <Routes>
-        <Route path="collection" element={<Collection />} />
-        <Route path="component" element={<Collection />} />
-      </Routes>
-    </>
-  );
-}
-
-
-
-
- function reducer(state, action) {
-   switch (action.type) {
-     case "all":
-       return [
-         ...state,
-         {
-           name: action.payload.name,
-           src: action.payload.updatedImgUrl,
-           edition: action.payload.edition,
-         },
-       ];
-     case "onlyImage":
-       return [...state, { src: action.payload.image }];
-     default:
-       throw new Error();
-   }
- }
-
-
-const Collection = () => {
-  const [web3, setWeb3] = useState(undefined);
-  const [accounts, setAccounts] = useState(undefined);
-  const [instance, setInstance] = useState(undefined);
-  const [image, setImage] = useState([]);
-  const baseURL = process.env.REACT_APP_BASE_URL;
-  const [NFTMetadata, dispatch] = useReducer(reducer, []);
-  const [quantity, updateQuantity] = useState(0);
-  
-  useEffect(() => {
-    const init = async () => {
-
-      const web3 = await getWeb3();
-      const accounts = await web3.eth.getAccounts();
-      const instance = new web3.eth.Contract(
-        DapDogoContract.abi,
-        "0x6A0576B8e6e6FAF498F103E27Ef7609366b148e2"
-      );
-      setWeb3(web3);
-      setAccounts(accounts);
-      setInstance(instance);
-      
-  
-    }
-    init()
+  if (typeof web3 == "undefined") {
+    return <>metamask login</>;
+  }
    
-    fetchNFTJSON();
-  }, [baseURL , accounts])
+const Home = () => {
   
-  const fetchNFTJSON = async () => {
+
   
-    for (var i = 1; i <= 9; i++) {
-      
-      await  fetch(baseURL.concat(i,".json"))
-         .then((res) => res.json())
-        .then(async (json) => {
 
-           dispatch({
-            type: "all",
-            payload: {
-              ...json,
-              updatedImgUrl: "https://gateway.pinata.cloud/ipfs/".concat(
-                json.image.slice(7)
-              ),
-            },
-          })
-
-          //  await fetch("https://gateway.pinata.cloud/ipfs/".concat( json.image.slice(7)))
-          //    .then((res) => res.blob())
-          //    .then((blob) => {
-          //      console.log(blob);
-
-          //     dispatch({
-          //       type: "all",
-          //       payload: {
-          //         ...json,
-          //         updatedImgUrl: URL.createObjectURL(blob)
-          //       },
-          //     });
-
-
-
-          //    })
-          
-          // dispatch({
-          //   type: "all",
-          //   payload: {
-          //     ...json,
-          //     updatedImgUrl: "https://gateway.pinata.cloud/ipfs/".concat(
-          //       json.image.slice(7)
-          //     ),
-          //   },
-          // })
-
-          })
-    }
-
-  }
-  const handleClick = (val) => {
-    var tag_id = document.getElementById("show");
-    tag_id.innerHTML = val.name;
-
-  }
-  const mintToken = async (quantity) => {
-    try {
-      if (typeof quantity !== "number")
-        throw new Error("quanity must be a number")
-      const amount = web3.utils.toWei( String(quantity*0.1), 'ether');
-    instance.methods.mint(quantity).send({from:accounts[0],value:amount})
-    } catch (error) {
-      console.log(error)
-    }
-    
-  }
- 
-  var count=0
   return (
     <>
-      <div className="mt-5">
-        <div>
-          <h3>Mint one of these Collection! </h3>
-          <Button onClick={() => count++}> increament</Button>
-          <p>{console.log(count)}</p>
-          <Button onClick={() => count--}> decreament</Button>
-          <Button onClick={() => mintToken(count)}> Click to Mint a Token !</Button>
-        </div>
-        <div className="container row">
-          <div className="col-md">
-            <div className="row no-gutters">
-              {NFTMetadata.map((val, k) => {
-                return (
-                  <div className="col-sm-4" key={k}>
-                    <img
-                      src={val.src}
-                      className={"img-fluid " + "p-1"}
-                      onClick={() => handleClick(val)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="col-md order-first">
-            <h3 className="font-weight-light">Info</h3>
-            <p id="show"></p>
-          </div>
-        </div>
-      </div>
+        <Header login={login} logOut={logOut}  />
+        <Outlet />
+
+    </>
+  );
+};  
+    
+  
+
+
+  return (
+    <>
+      <GlobalState.Provider
+        value={{
+          web3,
+          accounts,
+          instance,
+          setAccounts,
+          setInstance,
+          isAuthenticated,
+        }}
+      >
+        {console.log(web3)}
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />}>
+              <Route path="DappDogo" element={<DapDogo />} />
+              <Route
+                path="collection"
+                element={<MyCollection fetchNFTs={fetchNFTs} />}
+              />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </GlobalState.Provider>
     </>
   );
 }
+
+
+
 
 export default App;
-
