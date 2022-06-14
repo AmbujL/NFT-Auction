@@ -1,23 +1,21 @@
 import React, { useEffect, useContext, useState } from "react";
 import { GlobalState } from "../App";
 import IERC721Contract from "../contracts/IERC721.json";
-import AuctionContract from "../contracts/IERC721.json";
+import AuctionContract from "../contracts/NFTAuction.json";
 import SellingContract from "../contracts/IERC721.json";
 import { Card ,ButtonGroup,ToggleButton , Form, Modal,Container,Button} from "react-bootstrap";
 
 export default function MyCollection({ fetchNFTs }) {
   const [nftInfo, updateNftInfo] = useState([]);
 
-  const { isAuthenticated } = useContext(GlobalState);
-
   useEffect(() => {
     const init = async () => {
-      if (isAuthenticated == true) {
+
           updateNftInfo(await fetchNFTs());
-      }
+      
     };
     init();
-  }, [isAuthenticated]);
+  }, []);
 
   return (
     <>
@@ -43,7 +41,7 @@ function NFTCard({ nftObj }) {
   const [price, setPrice] = useState(0);
   const [time, setTime] = useState(0);
   const [radioValue, setRadioValue] = useState("1");
-  const { web3 ,accounts} = useContext(GlobalState);
+  const { web3 ,accounts,auctionInstance} = useContext(GlobalState);
   
   const radios = [{ name: "Auction", value: '1' }, { name: "Sale", value: '2' }];
   
@@ -53,7 +51,7 @@ function NFTCard({ nftObj }) {
    if (nftObj.owner_of == accounts[0]) {
      const nft_instance = new web3.eth.Contract(
        IERC721Contract.abi,
-       nftObj.address
+       nftObj.token_address
      );
      await nft_instance.methods
        .approve(RecieverContractJson, nftObj.token_id)
@@ -72,17 +70,13 @@ function NFTCard({ nftObj }) {
     try {
       if (price <= 0 || time <= 0)
         throw new Error("price or Time is not valid ");
-      const netId = await web3.eth.net.getId();
-      const auctionAddress = AuctionContract.networks[netId].address;
-      await approveNFTTransferTo(auctionAddress);
-      
-      const auctionInstance = new web3.eth.Contract(
-        AuctionContract.abi,
-        auctionAddress
-      );
-
-       auctionInstance.methods.startAuction(nftObj.address,nftObj.token_id,price,time); 
-     
+     await approveNFTTransferTo(auctionInstance.address);
+      await auctionInstance.methods.startAuction(
+         nftObj.token_address,
+         nftObj.token_id,
+         price,
+         time
+       ).send({from: accounts[0]}).then(console.log)    
     }
     catch (error) {
       console.log(error," ->  occured at TriggerAuction");
@@ -111,21 +105,13 @@ function NFTCard({ nftObj }) {
      
     }
     catch (error) {
-      console.log(error," ->  occured at TriggerAuction");
+      console.log(error," ->  occured at triggerSale");
     }
   };
 
-  const InvokeModal = ({ x }) => {
-    
-   return (
-      <>
-       
-      </>
-    )
-  }
-
   return (
     <>
+      {console.log("MyCollection", web3)}
       <Card style={{ width: "18rem" }}>
         <Card.Img
           variant="top"

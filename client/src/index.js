@@ -14,7 +14,7 @@ const apiId = process.env.REACT_APP_API_ID;
 
 ReactDOM.render(
  
-    <MoralisProvider serverUrl={serverUrl} appId={apiId}>
+  <MoralisProvider serverUrl={serverUrl} appId={apiId}>
      <App />
     </MoralisProvider>,
   document.getElementById("root")

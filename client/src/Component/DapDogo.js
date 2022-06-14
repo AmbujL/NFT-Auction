@@ -2,6 +2,7 @@ import React,{useState,useReducer,useContext, useEffect} from 'react';
 import {GlobalState} from '../App';
 import DapDogoContract from "../contracts/DapDogoNFT.json";
 import { Button } from "react-bootstrap";
+
 function reducer(state, action) {
   switch (action.type) {
     case "all":
@@ -29,7 +30,7 @@ export default function () {
     const [NFTMetadata, dispatch] = useReducer(reducer, []);
   const [quantity, updateQuantity] = useState(0);
     const [instance, setInstance] = useState(undefined);
-    const { web3,  accounts ,isAuthenticated } = useContext(GlobalState);
+    const { web3,  accounts  } = useContext(GlobalState);
     
     useEffect(() => {
       const init = async () => {
@@ -59,6 +60,7 @@ export default function () {
         await fetch(baseURL.concat(i, ".json"))
           .then((res) => res.json())
           .then((json) => {
+
             dispatch({
               type: "all",
               payload: {
@@ -69,6 +71,7 @@ export default function () {
                 )
               },
             });
+          
   
             //  await fetch("https://gateway.pinata.cloud/ipfs/".concat( json.image.slice(7)))
             //    .then((res) => res.blob())
@@ -100,7 +103,8 @@ export default function () {
     const handleClick = (val) => {
       var tag_id = document.getElementById("show");
       tag_id.innerHTML = val.name;
-    };
+  };
+  
     const mintToken = async (quantity) => {
       try {
         if (typeof quantity !== "number")
@@ -122,13 +126,6 @@ export default function () {
       if (quantity <= 0) return;
       updateQuantity(quantity - 1);
     }
-
-    if (!isAuthenticated)
-      return (
-        <>
-          <div>please First Login via Ethereum Wallet , click on Login!</div>
-        </>
-      );
 
     return (
       <>
