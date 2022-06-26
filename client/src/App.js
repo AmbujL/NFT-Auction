@@ -1,103 +1,92 @@
-import React, {
-  useEffect,
-  useState,
-  createContext,
-} from "react";
+import React, { useEffect, useState, createContext } from "react";
 import { BrowserRouter, Route, Routes, Outlet } from "react-router-dom";
-import DapDogoContract from "./contracts/DapDogoNFT.json";
 import AuctionContract from "./contracts/NFTAuction.json";
 import Header from "./Component/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import getWeb3 from "./getWeb3";
 import "./App.css";
-import { useMoralis, useMoralisWeb3Api } from "react-moralis";
-import  MyCollection from "./Component/MyCollection";
-import DapDogo from "./Component/DapDogo.js"
-import ShowNFTs, { NFTItem } from "./Component/ShowNFTs.js"
-
+import { useMoralis, useMoralisWeb3Api, useMoralisQuery } from "react-moralis";
+import MyCollection from "./Component/MyCollection";
+import DapDogo from "./Component/DapDogo.js";
+import ShowNFTs from "./Component/ShowNFTs.js";
+import loginmsg from "./loginmsg.png";
+import authlost from "./authlost.webp";
 
 require("dotenv").config();
 
 export const GlobalState = createContext();
+export const ListedNFts = createContext(); 
 
 function App() {
+  const [web3, setWeb3] = useState(undefined);
+  const [accounts, setAccounts] = useState([]);
+  const [auctionInstance, setAuctionInstance] = useState(undefined);
+  const [netId, setNetId] = useState(undefined);
+  const Web3Api = useMoralisWeb3Api();
 
-const [web3, setWeb3] = useState(undefined);
-const [accounts, setAccounts] = useState([]);
-const [auctionInstance, setAuctionInstance] = useState(undefined);
-const Web3Api = useMoralisWeb3Api();
+  const { authenticate, isAuthenticated, isAuthenticating, logout } =
+    useMoralis();
   
-const {
-  authenticate,
-  isAuthenticated,
-  isInitialized,
-  isAuthenticating,
-  isWeb3EnableLoading,
-  isWeb3Enabled,
-  user,
-  logout,
-} = useMoralis();
-  
-  
+      
+
   useEffect(() => {
     const init = async () => {
+      if (window.ethereum) {
+        window.ethereum.on("chainChanged", () => {
+          window.sessionStorage.setItem("session", false);
+          window.location.reload();
+        });
+        window.ethereum.on("accountsChanged", async () => {
+          window.location.reload();
+          await logOut();
+        });
+      } else {
+        window.sessionStorage.setItem("session", false);
+      }
 
-       if (window.ethereum) {
-         window.ethereum.on("chainChanged", () => {
-           window.location.reload();
-         });
-         window.ethereum.on("accountsChanged", async () => {
-           window.location.reload();
-           await logOut();
-         });
-    
-       }
-      if (isAuthenticated)
+      if (isAuthenticated) {
         await web3getter();
+      }
     };
 
     init();
-  }, [isAuthenticated, setAccounts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated,setAccounts]);
 
-  
-  async function web3getter (){
-       try {
-          const web3 = await getWeb3();
-          console.log("inside useEffect");
-         const accounts = await web3.eth.getAccounts();
-           const netId = await web3.eth.net.getId();
-         const auctionAddress = AuctionContract.networks[netId].address;
-          const auctionInstance = new web3.eth.Contract(
-            AuctionContract.abi,
-            auctionAddress
-          );
+  async function web3getter() {
+    try {
+      const web3 = await getWeb3();
+      const accounts = await web3.eth.getAccounts();
+      const netId = await web3.eth.net.getId();
+      const auctionAddress = AuctionContract.networks[netId].address;
+      const auctionInstance = new web3.eth.Contract(
+        AuctionContract.abi,
+        auctionAddress
+      );
 
-         setWeb3(web3);
-         setAccounts(accounts);
-         setAuctionInstance(auctionInstance);
-        } catch (error) {
-          console.log(error);
-        }
+      setWeb3(web3);
+      setAccounts(accounts);
+      window.sessionStorage.setItem("session",true);
+      setNetId(netId);
+      setAuctionInstance(auctionInstance);
+    } catch (error) {
+      console.log(error);
+    }
   }
-  
-
 
   const login = async () => {
-    console.log("login invoked", isAuthenticated);
 
     if (!isAuthenticated) {
       await web3getter();
-        await authenticate({ signingMessage: "Log in to NFT Auction" })
-          .then(async function (user) {
-            console.log("logged in user:", user);
-            console.log(user.get("ethAddress"));
-          })
-          .catch(function (error) {
-            console.log(error);
-          });
-      
+      await authenticate({ signingMessage: "Log in to NFT Auction" })
+        .then(async function (user) {
+          console.log("logged in user:", user);
+          console.log(user.get("ethAddress"));
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
     }
-   
   };
 
   const logOut = async () => {
@@ -105,75 +94,85 @@ const {
   };
 
   const fetchNFTs = async () => {
-    // get mainnet NFT transfers for the current user
-    const testData = [
-      {
-        token_address: DapDogoContract.networks["5577"].address,
-        token_id: "3",
-        contract_type: "ERC721",
-        owner_of: accounts[0],
-        block_number: "88256",
-        block_number_minted: "88256",
-        token_uri:
-          "https://gateway.pinata.cloud/ipfs/QmWWXWxH5uPF458MyKPqLtmPXfe4VdcMNUA8odn4J8HY1W/2.png",
-        metadata: "string",
-        synced_at: "string",
-        amount: "1",
-        name: "cpto Dogger",
-        symbol: "RARI",
-      },
-    ];
-    //  const bscBalance = await web3.account.getNativeBalance();
-    // console.log(bscBalance);
-    
-    // const NFTsOwned = await Web3Api.account.getNFTs({
-    //   chain: "ropsten",
-    // });
+
+    const network = {
+      3: 'ropsten',
+      5: 'goerli',
+      4: 'rinkeby'
+    };
+
+    const NFTsOwned = await Web3Api.account.getNFTs({
+      chain: network[netId],
+      address: accounts[0],
+    });
     // console.log(NFTsOwned);
-    return testData
-   
+    return NFTsOwned?.result;
   };
 
-
   if (isAuthenticating) {
-    return (<><div>
-      Authenticating wait...
-    </div></>);
-  }
-
-
-   
-const Home = () => {
-  // const [msg, setMsg] = useState(undefined);
-
-  // useEffect(() => {
-  //   if (!isAuthenticated && web3)
-  //     setMsg("please Authenticate First");
-  //   else if (!web3 && isAuthenticated)
-  //     setMsg("oops.. seems like your wallet got disconnected");
-  //   else if (!web3 && !isAuthenticated)
-  //     setMsg("Please Login first ..");
-  // }, [isAuthenticated, web3]);
-  
-  
     return (
       <>
-        {/* {console.log("e home hayi")} */}
-        <Header login={login} logOut={logOut} />
-        {!isAuthenticated || !web3 ? (
-          
-          (!isAuthenticated && web3)? <div>Authentication Lost ! please Click on Login  .. </div>:(
-        (isAuthenticated && !web3)? <div>oops.. seems like your wallet got disconnected . connect it via metamask </div>:
-          ((!isAuthenticated && !web3)? <div>please login first .. </div>:<></>)
-        ))
-        :(<Outlet />)         
-      }
+        <div className="text-muted mt-3 display-5 text-center">
+          Authenticating wait...
+        </div>
       </>
     );
-};  
-    
-  
+  }
 
+  const Home = () => {
+ const { data: listedNfts, isFetching: fetchingListedNFts } = useMoralisQuery(
+   "activeAuction",
+   (query) => query.limit(20).descending("tokenId")
+ );
+    
+    
+    
+    return (
+      <>
+        <ListedNFts.Provider value={{ listedNfts, fetchingListedNFts }}>
+          <Header login={login} logOut={logOut} />
+          {!isAuthenticated || !web3 ? (
+            !isAuthenticated && web3 ? (
+              <div className="text-center mt-5">
+                <img
+                  src={authlost}
+                  alt="authlost"
+                  style={{ width: "300px", height: "300px" }}
+                />
+                <p className="text-muted mt-3 display-5">
+                  Authentication Lost ! please Click on Login ..
+                </p>
+              </div>
+            ) : isAuthenticated && !web3 ? (
+              JSON.parse(window.sessionStorage.getItem("session")) ? (
+                <div className="display-5 text-center text-muted mt-5">
+                  Loading....
+                </div>
+              ) : (
+                <div className="container text-center mt-5">
+                  <img src={loginmsg} alt="loginmsg" className="roundness-all" />
+                  <p className="text-muted mt-3 display-5">
+                    oops.. seems like your wallet got disconnected . connect it
+                    via metamask
+                  </p>
+                </div>
+              )
+            ) : !isAuthenticated && !web3 ? (
+              <div className="text-center mt-5">
+                <p className="text-muted mt-3 display-5">
+                  Please login first ..
+                </p>
+              </div>
+            ) : (
+              <></>
+            )
+          ) : (
+            isAuthenticated && web3 && accounts[0] && <Outlet />
+          )}
+        </ListedNFts.Provider>
+      </>
+    );
+  };
 
   return (
     <>
@@ -183,13 +182,20 @@ const Home = () => {
           accounts,
           setAccounts,
           auctionInstance,
+          isAuthenticated,
+          Web3Api,
         }}
       >
-        {console.log({ web3 }, { isAuthenticated },{accounts})}
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />}>
-              <Route index element={<ShowNFTs />} />
+              <Route
+                index
+                element={
+                  <ShowNFTs
+                  />
+                } />
+
               <Route path="DappDogo" element={<DapDogo />} />
               <Route
                 path="collection"
@@ -202,8 +208,5 @@ const Home = () => {
     </>
   );
 }
-
-
-
 
 export default App;

@@ -4,6 +4,7 @@ Moralis.Cloud.afterSave("AuctionStarted", async (request) => {
   const logger = Moralis.Cloud.getLogger();
   
   logger.info(`Looking for confirmed TX... with AuctionStarted event... ${confirmed}`);
+
   if (confirmed) {
 
     logger.info("Found item!");
@@ -16,10 +17,10 @@ Moralis.Cloud.afterSave("AuctionStarted", async (request) => {
     activeItem.set("price", request.object.get("price"));
     activeItem.set("tokenId", request.object.get("tokenNumber"));
     activeItem.set("seller", request.object.get("ownerofToken"));
-    activeItem.set("validity", request.object.get("time"));
+    activeItem.set("validity", String(parseInt(request.object.get("time")) * 5760));
     activeItem.set("bid", "0");
     activeItem.set("bidder", "none");
-    activeItem.set("status", "started");
+    activeItem.set("status", "0");
 
     logger.info(
       `Adding Address: ${request.object.get(
@@ -62,18 +63,35 @@ Moralis.Cloud.afterSave("BidMade", async (request) => {
         )} since the listing is being updated. `
       );
     }
-
     // Add new activeAuction
+     const AuctionStarted = Moralis.Object.extend("AuctionStarted");
+     const queryauctionStarted = new Moralis.Query(AuctionStarted);
+     queryauctionStarted.equalTo(
+       "ownerofToken",
+       request.object.get("ownerofToken")
+     );
+     queryauctionStarted.equalTo(
+       "nftAddress",
+       request.object.get("nftAddress")
+     );
+    queryauctionStarted.equalTo("tokenNumber", request.object.get("tokenNumber"));
+    
+    logger.info(`Marketplace | Query: ${queryauctionStarted}`);
+
+          const data = await queryauctionStarted
+            .descending("block_number")
+            .first();
+
     const activeItem = new activeAuction();
     activeItem.set("marketplaceAddress", request.object.get("address"));
     activeItem.set("nftAddress", request.object.get("nftAddress"));
-    activeItem.set("price", request.object.get("price"));
+    activeItem.set("price", data.attributes.price);
     activeItem.set("tokenId", request.object.get("tokenNumber"));
     activeItem.set("seller", request.object.get("ownerofToken"));  
     activeItem.set("validity", request.object.get("time"));
     activeItem.set("bid", request.object.get("bindingBid"));
      activeItem.set("bidder", request.object.get("bidder"));
-    activeItem.set("status", "Running");
+    activeItem.set("status", request.object.get("auctionStatus"));
     logger.info(
       `Adding Address: ${request.object.get(
         "address"

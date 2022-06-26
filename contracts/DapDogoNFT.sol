@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "../node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract DapDogoNFT is ERC721 ,Ownable 
+contract DapDogoNFT is ERC721 ,Ownable ,ReentrancyGuard
 {
   uint256 public mintPrice;
   uint256 public totalSupply;
@@ -43,10 +44,10 @@ contract DapDogoNFT is ERC721 ,Ownable
   }
 
 
-  function mint(uint256 _quantity) public payable {
-  
+  function mint(uint256 _quantity) public payable nonReentrant 
+  {
     require(isPublicMintEnabled,"minting not enabled");
-    require(msg.value == _quantity* mintPrice && msg.value!=0,"wrong mint value");
+    require(msg.value == _quantity* mintPrice,"wrong mint value");
     require(totalSupply + _quantity <= maxSupply,"sold Out");
     require(walletMint[msg.sender] + _quantity <= maxPerWallet,"exceed max wallet");
 
@@ -62,13 +63,6 @@ contract DapDogoNFT is ERC721 ,Ownable
   }
 
 
-  // function mintById(uint256 _tokenId) public payable {
-  //    require(isPublicMintEnabled,"minting not enabled");
-  //    require(msg.value==mintPrice,"wrong mint price");
-  //    require(!_exists(_tokenId),"Token Id exists!");
-  //    require(!tokenId>1000," token Id out of bound" )
-  //    require(walletMint[msg.sender] + 1 <= maxPerWallet,"exceed max wallet");
-  
-  // }
+
 
 }
