@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.6.0",
+    "@truffle/hdwallet-provider": "^2.0.9",
+    "dotenv": "^16.0.1",
+    "react-color-extractor": "^1.1.2"
+  }
+}

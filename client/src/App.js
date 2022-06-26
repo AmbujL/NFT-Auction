@@ -1,73 +1,212 @@
-import React, { Component } from "react";
-import SimpleStorageContract from "./contracts/SimpleStorage.json";
+import React, { useEffect, useState, createContext } from "react";
+import { BrowserRouter, Route, Routes, Outlet } from "react-router-dom";
+import AuctionContract from "./contracts/NFTAuction.json";
+import Header from "./Component/Header";
+import "bootstrap/dist/css/bootstrap.min.css";
 import getWeb3 from "./getWeb3";
-
 import "./App.css";
+import { useMoralis, useMoralisWeb3Api, useMoralisQuery } from "react-moralis";
+import MyCollection from "./Component/MyCollection";
+import DapDogo from "./Component/DapDogo.js";
+import ShowNFTs from "./Component/ShowNFTs.js";
+import loginmsg from "./loginmsg.png";
+import authlost from "./authlost.webp";
 
-class App extends Component {
-  state = { storageValue: 0, web3: null, accounts: null, contract: null };
+require("dotenv").config();
 
-  componentDidMount = async () => {
+export const GlobalState = createContext();
+export const ListedNFts = createContext(); 
+
+function App() {
+  const [web3, setWeb3] = useState(undefined);
+  const [accounts, setAccounts] = useState([]);
+  const [auctionInstance, setAuctionInstance] = useState(undefined);
+  const [netId, setNetId] = useState(undefined);
+  const Web3Api = useMoralisWeb3Api();
+
+  const { authenticate, isAuthenticated, isAuthenticating, logout } =
+    useMoralis();
+  
+      
+
+  useEffect(() => {
+    const init = async () => {
+      if (window.ethereum) {
+        window.ethereum.on("chainChanged", () => {
+          window.sessionStorage.setItem("session", false);
+          window.location.reload();
+        });
+        window.ethereum.on("accountsChanged", async () => {
+          window.location.reload();
+          await logOut();
+        });
+      } else {
+        window.sessionStorage.setItem("session", false);
+      }
+
+      if (isAuthenticated) {
+        await web3getter();
+      }
+    };
+
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated,setAccounts]);
+
+  async function web3getter() {
     try {
-      // Get network provider and web3 instance.
       const web3 = await getWeb3();
-
-      // Use web3 to get the user's accounts.
       const accounts = await web3.eth.getAccounts();
-
-      // Get the contract instance.
-      const networkId = await web3.eth.net.getId();
-      const deployedNetwork = SimpleStorageContract.networks[networkId];
-      const instance = new web3.eth.Contract(
-        SimpleStorageContract.abi,
-        deployedNetwork && deployedNetwork.address,
+      const netId = await web3.eth.net.getId();
+      const auctionAddress = AuctionContract.networks[netId].address;
+      const auctionInstance = new web3.eth.Contract(
+        AuctionContract.abi,
+        auctionAddress
       );
 
-      // Set web3, accounts, and contract to the state, and then proceed with an
-      // example of interacting with the contract's methods.
-      this.setState({ web3, accounts, contract: instance }, this.runExample);
+      setWeb3(web3);
+      setAccounts(accounts);
+      window.sessionStorage.setItem("session",true);
+      setNetId(netId);
+      setAuctionInstance(auctionInstance);
     } catch (error) {
-      // Catch any errors for any of the above operations.
-      alert(
-        `Failed to load web3, accounts, or contract. Check console for details.`,
-      );
-      console.error(error);
+      console.log(error);
+    }
+  }
+
+  const login = async () => {
+
+    if (!isAuthenticated) {
+      await web3getter();
+      await authenticate({ signingMessage: "Log in to NFT Auction" })
+        .then(async function (user) {
+          console.log("logged in user:", user);
+          console.log(user.get("ethAddress"));
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
     }
   };
 
-  runExample = async () => {
-    const { accounts, contract } = this.state;
-
-    // Stores a given value, 5 by default.
-    await contract.methods.set(5).send({ from: accounts[0] });
-
-    // Get the value from the contract to prove it worked.
-    const response = await contract.methods.get().call();
-
-    // Update state with the result.
-    this.setState({ storageValue: response });
+  const logOut = async () => {
+    await logout().then((obj) => console.log(obj));
   };
 
-  render() {
-    if (!this.state.web3) {
-      return <div>Loading Web3, accounts, and contract...</div>;
-    }
+  const fetchNFTs = async () => {
+
+    const network = {
+      3: 'ropsten',
+      5: 'goerli',
+      4: 'rinkeby'
+    };
+
+    const NFTsOwned = await Web3Api.account.getNFTs({
+      chain: network[netId],
+      address: accounts[0],
+    });
+    // console.log(NFTsOwned);
+    return NFTsOwned?.result;
+  };
+
+  if (isAuthenticating) {
     return (
-      <div className="App">
-        <h1>Good to Go!</h1>
-        <p>Your Truffle Box is installed and ready.</p>
-        <h2>Smart Contract Example</h2>
-        <p>
-          If your contracts compiled and migrated successfully, below will show
-          a stored value of 5 (by default).
-        </p>
-        <p>
-          Try changing the value stored on <strong>line 42</strong> of App.js.
-        </p>
-        <div>The stored value is: {this.state.storageValue}</div>
-      </div>
+      <>
+        <div className="text-muted mt-3 display-5 text-center">
+          Authenticating wait...
+        </div>
+      </>
     );
   }
+
+  const Home = () => {
+ const { data: listedNfts, isFetching: fetchingListedNFts } = useMoralisQuery(
+   "activeAuction",
+   (query) => query.limit(20).descending("tokenId")
+ );
+    
+    
+    
+    return (
+      <>
+        <ListedNFts.Provider value={{ listedNfts, fetchingListedNFts }}>
+          <Header login={login} logOut={logOut} />
+          {!isAuthenticated || !web3 ? (
+            !isAuthenticated && web3 ? (
+              <div className="text-center mt-5">
+                <img
+                  src={authlost}
+                  alt="authlost"
+                  style={{ width: "300px", height: "300px" }}
+                />
+                <p className="text-muted mt-3 display-5">
+                  Authentication Lost ! please Click on Login ..
+                </p>
+              </div>
+            ) : isAuthenticated && !web3 ? (
+              JSON.parse(window.sessionStorage.getItem("session")) ? (
+                <div className="display-5 text-center text-muted mt-5">
+                  Loading....
+                </div>
+              ) : (
+                <div className="container text-center mt-5">
+                  <img src={loginmsg} alt="loginmsg" className="roundness-all" />
+                  <p className="text-muted mt-3 display-5">
+                    oops.. seems like your wallet got disconnected . connect it
+                    via metamask
+                  </p>
+                </div>
+              )
+            ) : !isAuthenticated && !web3 ? (
+              <div className="text-center mt-5">
+                <p className="text-muted mt-3 display-5">
+                  Please login first ..
+                </p>
+              </div>
+            ) : (
+              <></>
+            )
+          ) : (
+            isAuthenticated && web3 && accounts[0] && <Outlet />
+          )}
+        </ListedNFts.Provider>
+      </>
+    );
+  };
+
+  return (
+    <>
+      <GlobalState.Provider
+        value={{
+          web3,
+          accounts,
+          setAccounts,
+          auctionInstance,
+          isAuthenticated,
+          Web3Api,
+        }}
+      >
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />}>
+              <Route
+                index
+                element={
+                  <ShowNFTs
+                  />
+                } />
+
+              <Route path="DappDogo" element={<DapDogo />} />
+              <Route
+                path="collection"
+                element={<MyCollection fetchNFTs={fetchNFTs} />}
+              />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </GlobalState.Provider>
+    </>
+  );
 }
 
 export default App;
