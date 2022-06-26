@@ -4,5 +4,11 @@
     "@truffle/hdwallet-provider": "^2.0.9",
     "dotenv": "^16.0.1",
     "react-color-extractor": "^1.1.2"
+  },
+  "scripts": {
+    "start": "cd ./client/ && npm start",
+    "build": "cd ./client/ && npm run build",
+    "test": "cd ./client/ && npm test",
+    "eject": "cd ./client/ && npm eject"
   }
 }
