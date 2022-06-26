@@ -6,6 +6,7 @@
     "react-color-extractor": "^1.1.2"
   },
   "scripts": {
+    "install": " npm run --prefix ./client  install",
     "start": " npm run --prefix ./client  start",
     "build": "npm run --prefix ./client  build",
     "test": "cd ./client/ && npm test",
