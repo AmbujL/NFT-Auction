@@ -78,14 +78,14 @@ const NFTBox = ({ listedItem, size, index }) => {
           .then(
             async (baseURL) => {
               if (baseURL) {
-                console.log(baseURL)
                 await fetch(baseURL)
                   .then((res) => res.json())
                   .then(async (json) => {
-                    // const imgURl = "https://gateway.pinata.cloud/ipfs/".concat(
-                    //   json.image.slice(7)
-                    // );
-                    const imgURl = json.image;
+                    const imgURl = json.image.startsWith("ipfs://")
+                      ? "https://gateway.pinata.cloud/ipfs/".concat(
+                          json.image.slice(7)
+                        )
+                      : json.image;
                     const imgBlob = await fetch(imgURl).then((res) =>
                       res.blob()
                     );
