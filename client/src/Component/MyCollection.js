@@ -125,18 +125,21 @@ export default function MyCollection({ fetchNFTs }) {
                 onClick={() => setShowDialog(true)}
                 className="mt-5"
               >
-                  <div className="small">Not able to find your Nft?</div>
-                  <strong>Click Here!</strong>
+                <div className="small">Not able to find your Nft?</div>
+                <strong>Click Here!</strong>
               </Button>
             </div>
             {!isNFTPresent[0] && (
-                <div className="text-center p-3  d-flex justify-content-center  align-items-center" style={{ height: '400px' }}>
-                  <div>
-                <AiOutlineFileSearch className="fa-4x" />
-                <div className=" text-muted text-light">
-                  {isNFTPresent[1]}
-                    </div>
+              <div
+                className="text-center p-3  d-flex justify-content-center  align-items-center"
+                style={{ height: "400px" }}
+              >
+                <div>
+                  <AiOutlineFileSearch className="fa-4x" />
+                  <div className=" text-muted text-light">
+                    {isNFTPresent[1]}
                   </div>
+                </div>
               </div>
             )}
             <div className="row justify-content-start mt-3">
@@ -222,9 +225,9 @@ function NFTCard({ nftObj }) {
         await fetch(baseURL)
           .then((res) => res.json())
           .then((json) => {
-            const imgURl = "https://gateway.pinata.cloud/ipfs/".concat(
+            const imgURl = json.image.startsWith("ipfs://") ? "https://gateway.pinata.cloud/ipfs/".concat(
               json.image.slice(7)
-            );
+            ) : json.image
             setImg(imgURl);
           });
       }
