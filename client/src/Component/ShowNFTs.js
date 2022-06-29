@@ -20,13 +20,13 @@ const ShowNFTs = () => {
           <h3 className="display-6 ms-1 my-5" style={{ fontWeight: "400" }}>
             Active Auctions
           </h3>
-          <div className="d-flex justify-content-evenly">
+          <div className="mx-5 row justify-content-start">
             {fetchingListedNFts ? (
               <div>Loading.....</div>
             ) : (
               listedNfts.map((item, index) => {
                 return (
-                  <div key={index} className="">
+                  <div key={index} className="col col-md-4 my-2 py-2">
                     <NFTBox
                       listedItem={item}
                       size={listedNfts.length}
